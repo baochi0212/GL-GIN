@@ -253,7 +253,7 @@ class Processor(object):
             ss, pred_slot, real_slot, pred_intent, real_intent, dev_loss = self.prediction(
                 self.__model, self.__dataset, "dev", test_batch, args)
         else:
-            ss, pred_slot, real_slot, pred_intent, real_intent, _ = self.prediction(
+            ss, pred_slot, real_slot, pred_intent, real_intent = self.prediction(
                 self.__model, self.__dataset, "test", test_batch, args)
 
         num_intent = len(self.__dataset.intent_alphabet)
