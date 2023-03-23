@@ -339,20 +339,25 @@ class Processor(object):
         if mode == "dev":
             for text_batch, slot_batch, intent_batch in tqdm(dev_loader, ncols=50):
                 padded_text, [sorted_slot, sorted_intent], seq_lens = dataset.add_padding(
-                    text_batch, [(slot_batch, False), (intent_batch, False)],
+                    text_batch, [(slot_batch, True), (intent_batch, True)],
                     digital=False
                 )
+                sorted_intent_exp = []
+                for item, num in zip(sorted_intent, seq_lens):
+                    sorted_intent_exp.extend([item] * num)
+                sorted_intent = [multilabel2one_hot(intents, len(self.__dataset.intent_alphabet)) for intents in
+                                 sorted_intent_exp]
 
-                digit_text = dataset.word_alphabet.get_index(padded_text)
-                var_text = torch.LongTensor(digit_text)
+                var_text = torch.LongTensor(padded_text)
                 slot_var = torch.LongTensor(sorted_slot)
                 intent_var = torch.Tensor(sorted_intent)
+
                 if self.args.gpu:
                     var_text = var_text.cuda()
                     slot_var = slot_var.cuda()
                     intent_var = intent_var.cuda()
                 max_len = np.max(seq_lens)
-
+                slot_var = torch.cat([slot_var[i][:seq_lens[i]] for i in range(0, len(seq_lens))], dim=0)
 
                 #LOSS for tuning
                 slot_out, intent_out = model(var_text, seq_lens)
