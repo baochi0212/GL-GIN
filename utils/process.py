@@ -283,7 +283,7 @@ class Processor(object):
         return slot_f1_score, intent_f1_score, intent_acc_score, sent_acc
 
 
-    def validate(model_path, dataset, batch_size, num_intent, args):
+    def validate(self, model_path, dataset, batch_size, num_intent, args):
         """
         validation will write mistaken samples to files and make scores.
         """
