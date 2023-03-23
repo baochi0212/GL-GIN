@@ -264,7 +264,6 @@ class ModelManager(nn.Module):
                 dim=0
             )
             intent_index = (intent_index_sum > (seq_lens_tensor // 2).unsqueeze(1)).nonzero()
-            print("SLOT_INDEX", slot_index, intent_index)
             return slot_index.cpu().data.numpy().tolist(), intent_index.cpu().data.numpy().tolist()
 
 
