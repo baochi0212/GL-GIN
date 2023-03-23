@@ -117,7 +117,7 @@ class Processor(object):
                     intent_var = intent_var.cuda()
                 slot_var = torch.cat([slot_var[i][:seq_lens[i]] for i in range(0, len(seq_lens))], dim=0)
                 random_slot, random_intent = random.random(), random.random()
-
+                print("?????", text_var.shape, slot_var.shape)
                 #TRAINING
                 slot_out, intent_out = self.__model(text_var, seq_lens)
                 
