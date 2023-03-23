@@ -58,8 +58,8 @@ class Processor(object):
 
     def __init__(self, dataset, model, args):
         self.__dataset = dataset
-        self.__model = nn.parallel.DataParallel(model, device_ids=[0, 1])
-        # self.__model = model
+        # self.__model = nn.parallel.DataParallel(model, device_ids=[0, 1])
+        self.__model = model
         self.args = args
         self.__batch_size = args.batch_size
         self.__load_dir = args.load_dir
@@ -117,7 +117,7 @@ class Processor(object):
                     intent_var = intent_var.cuda()
                 slot_var = torch.cat([slot_var[i][:seq_lens[i]] for i in range(0, len(seq_lens))], dim=0)
                 random_slot, random_intent = random.random(), random.random()
-                print("?????", text_var.shape, slot_var.shape)
+                # print("?????", text_var.shape, slot_var.shape)
                 #TRAINING
                 slot_out, intent_out = self.__model(text_var, seq_lens)
                 
