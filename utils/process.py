@@ -100,6 +100,7 @@ class Processor(object):
             for text_batch, slot_batch, intent_batch in tqdm(dataloader, ncols=50):
                 padded_text, [sorted_slot, sorted_intent], seq_lens = self.__dataset.add_padding(
                     text_batch, [(slot_batch, True), (intent_batch, False)])
+
                 sorted_intent_exp = []
                 for item, num in zip(sorted_intent, seq_lens):
                     sorted_intent_exp.extend([item] * num)
@@ -109,17 +110,20 @@ class Processor(object):
                 slot_var = torch.LongTensor(sorted_slot)
                 intent_var = torch.Tensor(sorted_intent)
                 max_len = np.max(seq_lens)
-
                 if self.args.gpu:
                     text_var = text_var.cuda()
                     slot_var = slot_var.cuda()
                     intent_var = intent_var.cuda()
-
+                slot_var = torch.cat([slot_var[i][:seq_lens[i]] for i in range(0, len(seq_lens))], dim=0)
                 random_slot, random_intent = random.random(), random.random()
 
+                #TRAINING
                 slot_out, intent_out = self.__model(text_var, seq_lens)
-
-                slot_var = torch.cat([slot_var[i][:seq_lens[i]] for i in range(0, len(seq_lens))], dim=0)
+                
+                
+                # print()
+                # print("INTENT", intent_out.shape, intent_var.shape)
+                # print("BEFORE", slot_out.shape, slot_var.shape)
                 slot_loss = self.__criterion(slot_out, slot_var)
 
                 intent_out = torch.cat([intent_out[i][:seq_lens[i]] for i in range(0, len(seq_lens))], dim=0)
