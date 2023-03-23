@@ -58,8 +58,8 @@ class Processor(object):
 
     def __init__(self, dataset, model, args):
         self.__dataset = dataset
-        # self.__model = nn.DataParallel(model, gpu_ids=[0, 1])
-        self.__model = model
+        self.__model = nn.DataParallel(model, gpu_ids=[0, 1])
+        # self.__model = model
         self.args = args
         self.__batch_size = args.batch_size
         self.__load_dir = args.load_dir
@@ -119,7 +119,7 @@ class Processor(object):
                 random_slot, random_intent = random.random(), random.random()
 
                 #TRAINING
-                slot_out, intent_out = self.__model(text_var, seq_lens, n_predicts=1)
+                slot_out, intent_out = self.__model(text_var, seq_lens)
                 
                 
                 # print()
