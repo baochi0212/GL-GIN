@@ -340,6 +340,7 @@ class Processor(object):
                 text_batch, [(slot_batch, False), (intent_batch, False)],
                 digital=False
             )
+            print(slot_batch, intent_batch)
             real_slot.extend(sorted_slot)
             all_token.extend([pt[:seq_lens[idx]] for idx, pt in enumerate(padded_text)])
             for intents in list(Evaluator.expand_list(sorted_intent)):
