@@ -384,10 +384,6 @@ class Processor(object):
                 else:
                     real_intent.append([intents])
 
-            digit_text = dataset.word_alphabet.get_index(padded_text)
-            var_text = torch.LongTensor(digit_text)
-            slot_var = torch.LongTensor(sorted_slot)
-            intent_var = torch.Tensor(sorted_intent)
             if self.args.gpu:
                 var_text = var_text.cuda()
             max_len = np.max(seq_lens)
