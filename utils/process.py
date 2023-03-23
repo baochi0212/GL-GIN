@@ -91,6 +91,7 @@ class Processor(object):
         best_dev_sent = 0.0
         best_dev_slot = 0.0
         best_epoch = 0
+        best_loss = 0
         no_improve = 0
         dataloader = self.__dataset.batch_delivery('train')
         for epoch in range(0, self.__dataset.num_epoch):
@@ -164,7 +165,7 @@ class Processor(object):
                 'about {:2.6} seconds.'.format(epoch, total_slot_loss, total_intent_loss, time_con))
 
             change, time_start = False, time.time()
-            dev_slot_f1_score, dev_intent_f1_score, dev_intent_acc_score, dev_sent_acc_score = self.estimate(
+            dev_slot_f1_score, dev_intent_f1_score, dev_intent_acc_score, dev_sent_acc_score, dev_loss = self.estimate(
                 if_dev=True,
                 test_batch=self.__batch_size,
                 args=self.args)
@@ -178,9 +179,10 @@ class Processor(object):
                 step=epoch
             )
 
-            if dev_sent_acc_score >= best_dev_sent or dev_slot_f1_score >= best_dev_slot:
+            if dev_sent_acc_score > best_dev_sent or dev_slot_f1_score > best_dev_slot or dev_loss > best_loss:
                 no_improve = 0
                 best_epoch = epoch
+                best_loss = dev_loss
                 best_dev_sent = dev_sent_acc_score
                 best_dev_slot = dev_slot_f1_score
                 test_slot_f1, test_intent_f1, test_intent_acc, test_sent_acc = self.estimate(
@@ -248,10 +250,10 @@ class Processor(object):
         """
 
         if if_dev:
-            ss, pred_slot, real_slot, pred_intent, real_intent = self.prediction(
+            ss, pred_slot, real_slot, pred_intent, real_intent, dev_loss = self.prediction(
                 self.__model, self.__dataset, "dev", test_batch, args)
         else:
-            ss, pred_slot, real_slot, pred_intent, real_intent = self.prediction(
+            ss, pred_slot, real_slot, pred_intent, real_intent, _ = self.prediction(
                 self.__model, self.__dataset, "test", test_batch, args)
 
         num_intent = len(self.__dataset.intent_alphabet)
@@ -262,7 +264,11 @@ class Processor(object):
             average='macro')
         intent_acc_score = Evaluator.intent_acc(pred_intent, real_intent)
         sent_acc = Evaluator.semantic_acc(pred_slot, real_slot, pred_intent, real_intent)
-        print("slot f1: {}, intent f1: {}, intent acc: {}, exact acc: {}".format(slot_f1_score, intent_f1_score,
+        if if_dev:
+            print("DEV_loss: {}, slot f1: {}, intent f1: {}, intent acc: {}, exact acc: {}".format(dev_loss, slot_f1_score, intent_f1_score,
+                                                                                 intent_acc_score, sent_acc))
+        else:
+            print("TEST_slot f1: {}, intent f1: {}, intent acc: {}, exact acc: {}".format(slot_f1_score, intent_f1_score,
                                                                                  intent_acc_score, sent_acc))
         # Write those sample both have intent and slot errors.
         with open(os.path.join(args.save_dir, 'error.txt'), 'w', encoding="utf8") as fw:
@@ -272,10 +278,11 @@ class Processor(object):
                 for w, r_slot, in zip(p_slot_list, r_slot_list):
                     fw.write(w + '\t' + r_slot + '\t''\n')
                 fw.write('\n\n')
-
+        if if_dev:
+            return slot_f1_score, intent_f1_score, intent_acc_score, sent_acc, dev_loss
         return slot_f1_score, intent_f1_score, intent_acc_score, sent_acc
 
-    @staticmethod
+
     def validate(model_path, dataset, batch_size, num_intent, args):
         """
         validation will write mistaken samples to files and make scores.
@@ -286,7 +293,7 @@ class Processor(object):
         else:
             model = torch.load(model_path, map_location=torch.device('cpu'))
 
-        ss, pred_slot, real_slot, pred_intent, real_intent = Processor.prediction(
+        ss, pred_slot, real_slot, pred_intent, real_intent = self.prediction(
             model, dataset, "test", batch_size, args)
 
         # To make sure the directory for save error prediction.
@@ -314,8 +321,7 @@ class Processor(object):
 
         return slot_f1_score, intent_f1_score, intent_acc_score, sent_acc
 
-    @staticmethod
-    def prediction(model, dataset, mode, batch_size, args):
+    def prediction(self, model, dataset, mode, batch_size, args):
         model.eval()
 
         if mode == "dev":
@@ -328,6 +334,7 @@ class Processor(object):
         pred_slot, real_slot = [], []
         pred_intent, real_intent = [], []
         all_token = []
+        total_loss = 0
         for text_batch, slot_batch, intent_batch in tqdm(dataloader, ncols=50):
             padded_text, [sorted_slot, sorted_intent], seq_lens = dataset.add_padding(
                 text_batch, [(slot_batch, False), (intent_batch, False)],
@@ -343,9 +350,25 @@ class Processor(object):
 
             digit_text = dataset.word_alphabet.get_index(padded_text)
             var_text = torch.LongTensor(digit_text)
-            max_len = np.max(seq_lens)
-            if args.gpu:
+            slot_var = torch.LongTensor(sorted_slot)
+            intent_var = torch.Tensor(sorted_intent)
+            if self.args.gpu:
                 var_text = var_text.cuda()
+                slot_var = slot_var.cuda()
+                intent_var = intent_var.cuda()
+            max_len = np.max(seq_lens)
+
+
+            #LOSS for tuning
+            slot_out, intent_out = model(var_text, seq_lens)
+            slot_loss = self.__criterion(slot_out, slot_var)
+            intent_out = torch.cat([intent_out[i][:seq_lens[i]] for i in range(0, len(seq_lens))], dim=0)
+            intent_loss = self.__criterion_intent(intent_out, intent_var)
+            intent_loss_alpha = self.args.intent_loss_alpha
+            slot_loss_alpha = self.args.slot_loss_alpha
+            batch_loss = slot_loss_alpha * slot_loss + intent_loss_alpha * intent_loss
+            total_loss += batch_loss.item()
+            #PREDICT
             slot_idx, intent_idx = model(var_text, seq_lens, n_predicts=1)
             nested_slot = Evaluator.nested_list([list(Evaluator.expand_list(slot_idx))], seq_lens)[0]
             pred_slot.extend(dataset.slot_alphabet.get_instance(nested_slot))
@@ -365,10 +388,11 @@ class Processor(object):
                 idx = idx + len(line)
                 writer.writelines("\n")
 
-        return all_token, pred_slot, real_slot, pred_intent, real_intent
+        return all_token, pred_slot, real_slot, pred_intent, real_intent, batch_loss
 
 
 class Evaluator(object):
+
 
     @staticmethod
     def intent_acc(pred_intent, real_intent):

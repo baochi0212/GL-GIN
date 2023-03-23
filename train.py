@@ -52,7 +52,7 @@ if __name__ == "__main__":
     # To train and evaluate the models.
     process = Processor(dataset, model, args)
     best_epoch = process.train()
-    result = Processor.validate(
+    result = process.validate(
         os.path.join(args.save_dir, "model/model.pkl"),
         dataset,
         args.batch_size, len(dataset.intent_alphabet), args=args)
