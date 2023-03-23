@@ -325,6 +325,7 @@ class Processor(object):
         model.eval()
 
         if mode == "dev":
+            dev_loader = dataset.batch_delivery('dev', batch_size=batch_size)
             dataloader = dataset.batch_delivery('dev', batch_size=batch_size, shuffle=False, is_digital=False)
         elif mode == "test":
             dataloader = dataset.batch_delivery('test', batch_size=batch_size, shuffle=False, is_digital=False)
@@ -335,12 +336,46 @@ class Processor(object):
         pred_intent, real_intent = [], []
         all_token = []
         total_loss = 0
+        if mode == "dev":
+            for text_batch, slot_batch, intent_batch in tqdm(dev_loader, ncols=50):
+                padded_text, [sorted_slot, sorted_intent], seq_lens = dataset.add_padding(
+                    text_batch, [(slot_batch, False), (intent_batch, False)],
+                    digital=False
+                )
+                print(slot_batch, intent_batch)
+                real_slot.extend(sorted_slot)
+                all_token.extend([pt[:seq_lens[idx]] for idx, pt in enumerate(padded_text)])
+                for intents in list(Evaluator.expand_list(sorted_intent)):
+                    if '#' in intents:
+                        real_intent.append(intents.split('#'))
+                    else:
+                        real_intent.append([intents])
+
+                digit_text = dataset.word_alphabet.get_index(padded_text)
+                var_text = torch.LongTensor(digit_text)
+                slot_var = torch.LongTensor(sorted_slot)
+                intent_var = torch.Tensor(sorted_intent)
+                if self.args.gpu:
+                    var_text = var_text.cuda()
+                    slot_var = slot_var.cuda()
+                    intent_var = intent_var.cuda()
+                max_len = np.max(seq_lens)
+
+
+                #LOSS for tuning
+                slot_out, intent_out = model(var_text, seq_lens)
+                slot_loss = self.__criterion(slot_out, slot_var)
+                intent_out = torch.cat([intent_out[i][:seq_lens[i]] for i in range(0, len(seq_lens))], dim=0)
+                intent_loss = self.__criterion_intent(intent_out, intent_var)
+                intent_loss_alpha = self.args.intent_loss_alpha
+                slot_loss_alpha = self.args.slot_loss_alpha
+                batch_loss = slot_loss_alpha * slot_loss + intent_loss_alpha * intent_loss
+                total_loss += batch_loss.item()
         for text_batch, slot_batch, intent_batch in tqdm(dataloader, ncols=50):
             padded_text, [sorted_slot, sorted_intent], seq_lens = dataset.add_padding(
                 text_batch, [(slot_batch, False), (intent_batch, False)],
                 digital=False
             )
-            print(slot_batch, intent_batch)
             real_slot.extend(sorted_slot)
             all_token.extend([pt[:seq_lens[idx]] for idx, pt in enumerate(padded_text)])
             for intents in list(Evaluator.expand_list(sorted_intent)):
@@ -355,20 +390,8 @@ class Processor(object):
             intent_var = torch.Tensor(sorted_intent)
             if self.args.gpu:
                 var_text = var_text.cuda()
-                slot_var = slot_var.cuda()
-                intent_var = intent_var.cuda()
             max_len = np.max(seq_lens)
 
-
-            #LOSS for tuning
-            slot_out, intent_out = model(var_text, seq_lens)
-            slot_loss = self.__criterion(slot_out, slot_var)
-            intent_out = torch.cat([intent_out[i][:seq_lens[i]] for i in range(0, len(seq_lens))], dim=0)
-            intent_loss = self.__criterion_intent(intent_out, intent_var)
-            intent_loss_alpha = self.args.intent_loss_alpha
-            slot_loss_alpha = self.args.slot_loss_alpha
-            batch_loss = slot_loss_alpha * slot_loss + intent_loss_alpha * intent_loss
-            total_loss += batch_loss.item()
             #PREDICT
             slot_idx, intent_idx = model(var_text, seq_lens, n_predicts=1)
             nested_slot = Evaluator.nested_list([list(Evaluator.expand_list(slot_idx))], seq_lens)[0]

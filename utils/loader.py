@@ -303,7 +303,8 @@ class DatasetManager(object):
 
         # Serialize raw text and stored it.
         self.__digit_word_data[data_name] = self.__word_alphabet.get_index(text)
-        if if_train_file:
+        # if if_train_file:
+        if True:
             self.__digit_slot_data[data_name] = self.__slot_alphabet.get_index(slot)
             self.__digit_intent_data[data_name] = self.__intent_alphabet.get_index(intent, multi_intent=True)
 
