@@ -409,8 +409,10 @@ class Processor(object):
                         str(sl == rsl) + " " + c + " " + sl + " " + rsl + "\n")
                 idx = idx + len(line)
                 writer.writelines("\n")
-
-        return all_token, pred_slot, real_slot, pred_intent, real_intent, batch_loss
+        if mode == 'dev':
+            return all_token, pred_slot, real_slot, pred_intent, real_intent, batch_loss
+        else:
+            return all_token, pred_slot, real_slot, pred_intent, real_intent
 
 
 class Evaluator(object):
