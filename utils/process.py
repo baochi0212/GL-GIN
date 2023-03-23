@@ -58,7 +58,7 @@ class Processor(object):
 
     def __init__(self, dataset, model, args):
         self.__dataset = dataset
-        self.__model = nn.DataParallel(model)
+        self.__model = nn.parallel.DataParallel(model, device_ids=[0, 1])
         # self.__model = model
         self.args = args
         self.__batch_size = args.batch_size
