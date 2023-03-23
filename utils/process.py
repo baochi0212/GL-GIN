@@ -339,8 +339,7 @@ class Processor(object):
         if mode == "dev":
             for text_batch, slot_batch, intent_batch in tqdm(dev_loader, ncols=50):
                 padded_text, [sorted_slot, sorted_intent], seq_lens = dataset.add_padding(
-                    text_batch, [(slot_batch, True), (intent_batch, True)],
-                    digital=False
+                    text_batch, [(slot_batch, True), (intent_batch, False)]
                 )
                 sorted_intent_exp = []
                 for item, num in zip(sorted_intent, seq_lens):
