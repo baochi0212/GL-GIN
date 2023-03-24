@@ -7,12 +7,12 @@ from models.module import ModelManager
 from utils.loader import DatasetManager
 from utils.process import *
 from utils.config import *
-import fitlog
+# import fitlog
 
 if __name__ == "__main__":
-    fitlog.set_log_dir("logs/")
-    fitlog.add_hyper(args)
-    fitlog.add_hyper_in_file(__file__)
+    # fitlog.set_log_dir("logs/")
+    # fitlog.add_hyper(args)
+    # fitlog.add_hyper_in_file(__file__)
     # Save training and model parameters.
     if not os.path.exists(args.save_dir):
         os.system("mkdir -p " + args.save_dir)
@@ -74,4 +74,4 @@ if __name__ == "__main__":
         args.batch_size, len(dataset.intent_alphabet), args=args)
     print('\nAccepted performance: ' + str(result) + " at test dataset;\n")
 
-    fitlog.finish()
+    # fitlog.finish()
