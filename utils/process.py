@@ -180,8 +180,8 @@ class Processor(object):
                 step=epoch
             )
 
-            # if dev_sent_acc_score > best_dev_sent or dev_slot_f1_score > best_dev_slot or dev_loss < best_loss:
-            if dev_loss < best_loss:
+            if dev_sent_acc_score > best_dev_sent or dev_loss < best_loss:
+            # if dev_loss < best_loss:
                 no_improve = 0
                 best_epoch = epoch
                 best_loss = dev_loss
