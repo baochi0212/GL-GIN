@@ -227,6 +227,7 @@ class ModelManager(nn.Module):
         intent_lstm_out = self.__intent_lstm(g_hiddens, seq_lens)
         intent_lstm_out = F.dropout(intent_lstm_out, p=self.__args.dropout_rate, training=self.training)
         pred_intent = self.__intent_decoder(intent_lstm_out)
+        print("???", intent_lstm_out.shape, pred_intent.shape)
         seq_lens_tensor = torch.tensor(seq_lens)
         if self.__args.gpu:
             seq_lens_tensor = seq_lens_tensor.cuda()

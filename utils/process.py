@@ -17,7 +17,7 @@ from collections import Counter
 # Utils functions copied from Slot-gated model, origin url:
 # 	https://github.com/MiuLab/SlotGated-SLU/blob/master/utils.py
 from utils import miulab
-import fitlog
+# import fitlog
 
 
 def multilabel2one_hot(labels, nums):
@@ -118,7 +118,7 @@ class Processor(object):
                     intent_var = intent_var.cuda()
                 slot_var = torch.cat([slot_var[i][:seq_lens[i]] for i in range(0, len(seq_lens))], dim=0)
                 random_slot, random_intent = random.random(), random.random()
-                # print("?????", text_var.shape, slot_var.shape)
+                # print("?????", text_var.shape, slot_var.shape, intent_var[0])
                 #TRAINING
                 slot_out, intent_out = self.__model(text_var, seq_lens)
                 
@@ -153,13 +153,13 @@ class Processor(object):
                     raise FileExistsError("gg")
                 try:
                     time.sleep(1)
-                    fitlog.add_loss(total_slot_loss, name='slot loss', step=epoch)
+                    # fitlog.add_loss(total_slot_loss, name='slot loss', step=epoch)
                     fflag = False
                 except FileExistsError as e:
                     pass
 
-            fitlog.add_loss(total_intent_loss, name='intent loss', step=epoch)
-            fitlog.add_loss(total_intent_loss + total_slot_loss, name='total loss', step=epoch)
+            # fitlog.add_loss(total_intent_loss, name='intent loss', step=epoch)
+            # fitlog.add_loss(total_intent_loss + total_slot_loss, name='total loss', step=epoch)
             time_con = time.time() - time_start
             print(
                 '[Epoch {:2d}]: The total slot loss on train data is {:2.6f}, intent data is {:2.6f}, cost ' \
@@ -170,15 +170,15 @@ class Processor(object):
                 if_dev=True,
                 test_batch=self.__batch_size,
                 args=self.args)
-            fitlog.add_metric(
-                {"dev": {"slot f1": dev_slot_f1_score,
-                         "intent f1": dev_intent_f1_score,
-                         "intent acc": dev_intent_acc_score,
-                         "exact acc": dev_sent_acc_score
-                         }
-                 },
-                step=epoch
-            )
+            # fitlog.add_metric(
+            #     {"dev": {"slot f1": dev_slot_f1_score,
+            #              "intent f1": dev_intent_f1_score,
+            #              "intent acc": dev_intent_acc_score,
+            #              "exact acc": dev_sent_acc_score
+            #              }
+            #      },
+            #     step=epoch
+            # )
 
             if dev_sent_acc_score > best_dev_sent or dev_loss < best_loss:
             # if dev_loss < best_loss:
@@ -201,31 +201,31 @@ class Processor(object):
                     except:
                         pass
 
-                fitlog.add_best_metric(
-                    {"dev": {"slot f1": dev_slot_f1_score,
-                             "intent f1": dev_intent_f1_score,
-                             "intent acc": dev_intent_acc_score,
-                             "exact acc": dev_sent_acc_score
-                             }
-                     }
-                )
-                fitlog.add_metric(
-                    {"test": {"slot f1": test_slot_f1,
-                              "intent f1": test_intent_f1,
-                              "intent acc": test_intent_acc,
-                              "exact acc": test_sent_acc
-                              }
-                     },
-                    step=epoch
-                )
-                fitlog.add_best_metric(
-                    {"test": {"slot f1": test_slot_f1,
-                              "intent f1": test_intent_f1,
-                              "intent acc": test_intent_acc,
-                              "exact acc": test_sent_acc
-                              }
-                     }
-                )
+                # fitlog.add_best_metric(
+                #     {"dev": {"slot f1": dev_slot_f1_score,
+                #              "intent f1": dev_intent_f1_score,
+                #              "intent acc": dev_intent_acc_score,
+                #              "exact acc": dev_sent_acc_score
+                #              }
+                #      }
+                # )
+                # fitlog.add_metric(
+                #     {"test": {"slot f1": test_slot_f1,
+                #               "intent f1": test_intent_f1,
+                #               "intent acc": test_intent_acc,
+                #               "exact acc": test_sent_acc
+                #               }
+                #      },
+                #     step=epoch
+                # )
+                # fitlog.add_best_metric(
+                #     {"test": {"slot f1": test_slot_f1,
+                #               "intent f1": test_intent_f1,
+                #               "intent acc": test_intent_acc,
+                #               "exact acc": test_sent_acc
+                #               }
+                #      }
+                # )
                 torch.save(self.__model, os.path.join(model_save_dir, "model.pkl"))
                 torch.save(self.__dataset, os.path.join(model_save_dir, 'dataset.pkl'))
 
