@@ -239,7 +239,7 @@ class ModelManager(nn.Module):
         )
 
         intent_index = (intent_index_sum > (seq_lens_tensor // 2).unsqueeze(1)).nonzero()
-
+        # print("\nPRED INTENT", pred_intent.shape)
         slot_lstm_out = self.__slot_lstm(torch.cat([g_hiddens, pred_intent], dim=-1), seq_lens)
         global_adj = self.generate_global_adj_gat(seq_lens, intent_index, len(pred_intent),
                                                   self.__args.slot_graph_window)
@@ -250,6 +250,7 @@ class ModelManager(nn.Module):
             slot_adj=slot_adj,
             intent_embedding=self.__intent_embedding
         )
+        # print("\nPRED SLOT", pred_slot.shape)
         if n_predicts is None:
             return F.log_softmax(pred_slot, dim=1), pred_intent
         else:

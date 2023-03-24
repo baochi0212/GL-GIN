@@ -12,7 +12,7 @@ import time
 import random
 import numpy as np
 from tqdm import tqdm
-from collections import Counter
+from collections import Counter 
 
 # Utils functions copied from Slot-gated model, origin url:
 # 	https://github.com/MiuLab/SlotGated-SLU/blob/master/utils.py
@@ -129,6 +129,7 @@ class Processor(object):
                 slot_loss = self.__criterion(slot_out, slot_var)
 
                 intent_out = torch.cat([intent_out[i][:seq_lens[i]] for i in range(0, len(seq_lens))], dim=0)
+                # print("\n TRAINING SHAPE:", slot_out.shape, slot_var.shape, intent_out.shape, intent_var.shape)
                 intent_loss = self.__criterion_intent(intent_out, intent_var)
                 intent_loss_alpha = self.args.intent_loss_alpha
                 slot_loss_alpha = self.args.slot_loss_alpha
