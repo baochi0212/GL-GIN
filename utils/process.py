@@ -91,7 +91,7 @@ class Processor(object):
         best_dev_sent = 0.0
         best_dev_slot = 0.0
         best_epoch = 0
-        best_loss = 0
+        best_loss = 9999
         no_improve = 0
         dataloader = self.__dataset.batch_delivery('train')
         for epoch in range(0, self.__dataset.num_epoch):
@@ -180,7 +180,8 @@ class Processor(object):
                 step=epoch
             )
 
-            if dev_sent_acc_score > best_dev_sent or dev_slot_f1_score > best_dev_slot or dev_loss < best_loss:
+            # if dev_sent_acc_score > best_dev_sent or dev_slot_f1_score > best_dev_slot or dev_loss < best_loss:
+            if dev_loss < best_loss:
                 no_improve = 0
                 best_epoch = epoch
                 best_loss = dev_loss
