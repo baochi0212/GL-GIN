@@ -184,8 +184,10 @@ class Processor(object):
             # if dev_loss < best_loss:
                 no_improve = 0
                 best_epoch = epoch
-                best_loss = dev_loss
-                best_dev_sent = dev_sent_acc_score
+                if dev_loss < best_loss:
+                    best_loss = dev_loss
+                elif dev_sent_acc_score > best_dev_sent:
+                    best_dev_sent = dev_sent_acc_score
                 best_dev_slot = dev_slot_f1_score
                 test_slot_f1, test_intent_f1, test_intent_acc, test_sent_acc = self.estimate(
                     if_dev=False, test_batch=self.__batch_size, args=self.args)
